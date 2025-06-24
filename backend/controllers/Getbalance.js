@@ -1,4 +1,5 @@
-import { Client } from 'xrpl'
+import { Client, Wallet } from 'xrpl'
+import { User } from '../models/user.js';
 
 
 const client = new Client('wss://s.altnet.rippletest.net:51233')
@@ -29,18 +30,28 @@ export const getaccountbalance = async(req, res, next) => {
 export const getaddress = async (req, res) => {
     const result = await client.fundWallet();
 
+    const user = await User.create(result);
+
     res.status(200).json({
         message: "Address generated successfully",
-        result
+        user
     })
 }
 
 export const gettransaction = async(req, res) => {
-    const {address1, address2} = req.body;
+    const {address1, seed1, address2} = req.body;
     try{
         const options = {
             ledger_index: 'validated',
             limit: '1'
+        }
+        
+        const wallet = Wallet.fromSeed(seed1);
+
+        if(wallet.classicAddress !== address1){
+            return res.status(400).json({
+                error: "Secret key is not valid"
+            })
         }
 
         const balances1 = await client.getBalances(address1, options);
@@ -58,9 +69,9 @@ export const gettransaction = async(req, res) => {
         let val1 = parseFloat(balances1[xrp1ind].value);
         let val2 = parseFloat(balances2[xrp2ind].value);
 
-        if(val1 >= 10){
-            val1 -= 10;
-            val2 += 10;
+        if(val1 >= 5){
+            val1 -= 5;
+            val2 += 5;
         }
         else{
             val2 += val1;
